@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+<!--     <TextView
+        android:id="@+id/Text0"
+        android:background="#FFF"
+        android:textColor="#000"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="JDY-SPP" 
+        android:gravity="center"
+        android:textAppearance="?android:attr/textAppearanceLarge" /> -->
+
+     <TextView
+         android:id="@+id/Text30"
+         android:layout_width="fill_parent"
+         android:layout_height="match_parent"
+         android:background="#000000"
+         android:gravity="left"
+         android:text="Version: spp-V1.0\nApplied to JDY-30, JDY-31, JDY-32, JDY-33 Bluetooth module testing "
+         android:textAppearance="?android:attr/textAppearanceLarge"
+        
+         />
+
+</LinearLayout>
