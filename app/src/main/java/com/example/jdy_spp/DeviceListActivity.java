@@ -249,27 +249,4 @@ public class DeviceListActivity extends Activity {
             }
         }
     };
-
-
-    protected class Favorite {
-
-        protected String name;
-        protected String kindness;
-
-        protected Favorite(String name, String kindness) {
-            this.name = name;
-            this.kindness = kindness;
-        }
-
-        /**
-         * The ListView is going to display the toString() return-value!
-         */
-        public String toString() {
-            return name + " (" + kindness + ")";
-        }
-
-        public boolean equals(Object o) {
-            return o instanceof Favorite && ((Favorite) o).name.compareTo(name) == 0;
-        }
-    }
 }

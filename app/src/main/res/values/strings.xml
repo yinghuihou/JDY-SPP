@@ -20,7 +20,7 @@
 
     <!--  MainActivity -->
     <string name="send">Send</string>
-    <string name="not_connected">You are not connected to a device</string>
+    <string name="not_connected">蓝牙未连接</string>
     <string name="bt_not_enabled_leaving">Bluetooth was not enabled. Leaving Bluetooth Chat.</string>
     <string name="title_connecting">connecting...</string>
     <string name="title_connected_to">connected to <xliff:g id="device_name">%1$s</xliff:g></string>
@@ -36,7 +36,7 @@
     <string name="button_scan">close</string>
 
     <!-- Options Menu -->
-    <string name="secure_connect">disconnet</string>
+    <string name="secure_connect">断开</string>
     <string name="insecure_connect">Connect a device - Insecure</string>
-    <string name="jdy_spp_set">set</string>
+    <string name="jdy_spp_set">设置</string>
 </resources>

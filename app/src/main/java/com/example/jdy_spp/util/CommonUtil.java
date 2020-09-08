@@ -24,4 +24,20 @@ public class CommonUtil {
             Toast.makeText(mContext, text, Toast.LENGTH_LONG).show();
         }
     }
+
+    public static byte[] hex2byte(byte[] b) {
+        if(b.length % 2 != 0) {
+            throw new IllegalArgumentException("长度不是偶数");
+        } else {
+            byte[] b2 = new byte[b.length / 2];
+
+            for(int n = 0; n < b.length; n += 2) {
+                String item = new String(b, n, 2);
+                b2[n / 2] = (byte)Integer.parseInt(item, 16);
+            }
+
+            Object b1 = null;
+            return b2;
+        }
+    }
 }
