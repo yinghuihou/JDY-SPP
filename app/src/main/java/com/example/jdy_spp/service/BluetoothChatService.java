@@ -5,13 +5,16 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
 import com.example.jdy_spp.MainActivity;
+import com.example.jdy_spp.util.CommonUtil;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -24,6 +27,7 @@ public class BluetoothChatService {
 
     // Name for the SDP record when creating server socket
     private static final String NAME = "MainActivity";
+    private static final String FILE_NAME = "PMCS_FW_F103.bin";
 
     // Unique UUID for this application
 
@@ -124,7 +128,6 @@ public class BluetoothChatService {
     /**
      * Start the ConnectThread to initiate a connection to a remote device.
      *
-     * @param device The BluetoothDevice to connect
      */
     public synchronized void disconnect() {
         stop();
@@ -251,6 +254,20 @@ public class BluetoothChatService {
         }
         // Perform the write unsynchronized
         r.write(out);
+    }
+
+    //发送文件
+    public void sendFile(AssetManager manager) {
+        // Create temporary object
+        ConnectedThread r;
+        // Synchronize a copy of the ConnectedThread
+        synchronized (this) {
+            if (mState != STATE_CONNECTED)
+                return;
+            r = mConnectedThread;
+        }
+        // Perform the write unsynchronized
+        r.sendFile(manager);
     }
 
     /**
@@ -430,6 +447,7 @@ public class BluetoothChatService {
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
+        private boolean isSending;
 
         public ConnectedThread(BluetoothSocket socket) {
             Log.d(TAG, "create ConnectedThread");
@@ -487,6 +505,33 @@ public class BluetoothChatService {
                 Log.e(TAG, "Exception during write", e);
             }
         }
+
+        /**
+         * 发送文件
+         */
+        public void sendFile(AssetManager manager) {
+            if (isSending) {
+                return;
+            }
+            DataOutputStream mFileStream = null;
+            isSending = true;
+            try {
+                mFileStream = new DataOutputStream(mmOutStream);
+                CommonUtil.showToast("正在发送文件····");
+                InputStream in = manager.open(FILE_NAME);
+                int r;
+                byte[] b = new byte[4 * 1024];
+                while ((r = in.read(b)) != -1) {
+                    mFileStream.write(b, 0, r);
+                }
+                CommonUtil.showToast("文件发送完成");
+                mFileStream.close();
+            } catch (Exception e) {
+
+            }
+            isSending = false;
+        }
+
 
         public void cancel() {
             try {

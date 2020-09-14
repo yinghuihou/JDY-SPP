@@ -20,10 +20,14 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -41,6 +45,8 @@ import android.widget.Toast;
 import com.example.jdy_spp.service.BluetoothChatService;
 import com.example.jdy_spp.util.CommonUtil;
 
+import static com.example.jdy_spp.SettingActivity.SEND_FILE_ACTION;
+
 /**
  * This is the main Activity that displays the current chat session.
  */
@@ -48,6 +54,7 @@ public class MainActivity extends Activity implements OnClickListener {
     // Debugging
     private static final String TAG = "MainActivity";
     private static final boolean D = true;
+    private MyLocalReceiver mReceiver = new MyLocalReceiver();
 
     // Message types sent from the BluetoothChatService Handler
     public static final int MESSAGE_STATE_CHANGE = 1;
@@ -133,6 +140,9 @@ public class MainActivity extends Activity implements OnClickListener {
 
         // 初始化发送缓存区
         mOutStringBuffer = new StringBuffer("");
+
+        //注册广播监听器
+        registerLoginBroadcast();
     }
 
     @Override
@@ -160,6 +170,7 @@ public class MainActivity extends Activity implements OnClickListener {
         if (mChatService != null) {
             mChatService.stop();
         }
+        unRegisterLoginBroadcast();
         super.onDestroy();
     }
 
@@ -190,6 +201,17 @@ public class MainActivity extends Activity implements OnClickListener {
             mOutStringBuffer.setLength(0);
         }
     }
+
+    //发送文件
+    private void sendFile() {
+        if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
+            Toast.makeText(this, R.string.not_connected, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        mChatService.sendFile(getAssets());
+    }
+
 
     private void setStatus(int resId) {
         final ActionBar actionBar = getActionBar();
@@ -233,11 +255,11 @@ public class MainActivity extends Activity implements OnClickListener {
                 case MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
 
-//                    //接收到来自单片机的数据
-//                    displayData(readBuf);
-                    // construct a string from the valid bytes in the buffer
-                    String readMessage = new String(readBuf, 0, msg.arg1);
-                    CommonUtil.showToast(readMessage);
+                   //接收到来自单片机的数据
+                   displayData(readBuf);
+
+//                    String readMessage = new String(readBuf, 0, msg.arg1);
+//                    CommonUtil.showToast(readMessage);
                     break;
                 case MESSAGE_DEVICE_NAME:
                     // save the connected device's name
@@ -316,7 +338,7 @@ public class MainActivity extends Activity implements OnClickListener {
                 return true;
             case R.id.discoverable:
                 //ensureDiscoverable();
-                Intent intent1 = new Intent(MainActivity.this, abaut_activity.class);
+                Intent intent1 = new Intent(MainActivity.this, SettingActivity.class);
                 startActivity(intent1);
                 return true;
         }
@@ -338,6 +360,26 @@ public class MainActivity extends Activity implements OnClickListener {
             mChatService.disconnect();
         }
     }
+    private void registerLoginBroadcast() {
+        IntentFilter intentFilter = new IntentFilter(SEND_FILE_ACTION);
+        LocalBroadcastManager.getInstance(MainActivity.this).registerReceiver(mReceiver, intentFilter);
+    }
+
+    //取消注册
+    private void unRegisterLoginBroadcast() {
+        LocalBroadcastManager.getInstance(MainActivity.this).unregisterReceiver(mReceiver);
+    }
+
+
+    private class MyLocalReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (action == SEND_FILE_ACTION) {
+                sendFile();
+            }
+        }
+    }
 
     // ==============  以下功能为移植过来的功能 =================
 
@@ -350,6 +392,8 @@ public class MainActivity extends Activity implements OnClickListener {
             public void onClick(View v) {
                 smsg = "";
                 dis.setText(smsg); // 显示数据
+              //  height_value.setText("," + (UN_I++) % 10);
+
             }
         });
 
@@ -483,7 +527,7 @@ public class MainActivity extends Activity implements OnClickListener {
     }
 
     //接收数据方法
-    private void displayData(byte[] data1) {
+    /*private void displayData(byte[] data1) {
         if (data1 != null && data1.length > 0) {
 
             final StringBuilder stringBuilder = new StringBuilder(sbValues.length());
@@ -493,10 +537,24 @@ public class MainActivity extends Activity implements OnClickListener {
             String da = stringBuilder.toString();
             sbValues.append(da);
             dis.setText(sbValues.toString());
+
             disp2Mobile(data1);
         }
     }
+*/
+    //接收数据方法
+    private void displayData(byte[] data1) {
+        if (data1 != null && data1.length > 0) {
 
+            StringBuilder stringBuilder = new StringBuilder();
+            for (byte byteChar : data1) {
+             //   stringBuilder.append(String.format(" %02x", byteChar));
+            }
+
+            dis.setText(stringBuilder.toString());
+            disp2Mobile(data1);
+        }
+    }
     int UN_I = 0;
 
     public void disp2Mobile(byte[] data1) {
@@ -516,183 +574,56 @@ public class MainActivity extends Activity implements OnClickListener {
 
         int a1 = data1[0] & 0xff;
         int a2 = data1[1] & 0xff;
-        int a3 = data1[2] & 0xff;
-        int a4 = data1[3] & 0xff;
-        int a5 = data1[4];
+       // int a3 = data1[2] & 0xff;
+       // int a4 = data1[3] & 0xff;
+        //int a5 = data1[4];
+        int a30 = data1[29];
+        //if (a1 == 0xAA  && a30 == 0xAA)
+        {
+            int a3 = data1[2] & 0xff;//高度
+            int a4 = data1[3];//刹车提前
+            int a5 = data1[4] & 0xff;//刹车时间
+            int a6 = data1[5];//与绳长度
+            int a7 = data1[6] & 0xff;//电流高8位
+            int a8 = data1[7] & 0xff;//电流低8位
+            int a9 = data1[8];//电机状态
+            int a10 = data1[9];//启停状态
+            int a11 = data1[10];//单双打
+            int a12 =  data1[11];//正传数
+            int a13 =  data1[12];//反传数
+            int a14 =  data1[13];//进尺高
+            int a15 =  data1[14];//进尺低
+            int a16 =  data1[15];//报警值
+            int a17 =  data1[18];//高1
+            int a18 =  data1[19];//高2
+                int a19 = data1[20] & 0xff;//离合延时 及速
+            int a20 =  data1[23];//刹车电流
+            int a21 =  data1[27];//刹车气压
+            int a22 = data1[28] & 0xff;//离合气压
+            dadianliu = a7 << 8 | a8;
 
-        if (a1 == 0xAA && a2 == 0xFB && a3 == 0xFF) {
-            if (a5 == 0x1 || a5 == 0x11)//第一段数据
-            {
-                int a6 = data1[5] & 0xff;//高度
-                int a7 = data1[6];//刹车提前
-                int a8 = data1[7] & 0xff;//刹车时间
-                int a9 = data1[8];//与绳长度
-                int a10 = data1[9] & 0xff;//电流高8位
-                int a11 = data1[10] & 0xff;//电流低8位
-                int a12 = data1[11];//电机状态
-                int a13 = data1[12];//启停状态
-                int a14 = data1[13];//单双打
-                dadianliu = a10 << 8 | a11;
-                height_value.setText((int) 3 * a6 + "," + (UN_I++) % 10);
-                rope_value.setText((int) 3 * a7 + "  ");
-                shache_lidu1.setText((int) a8 + "  ");
-                tv_A.setText((float) dadianliu + "  ");
-                if (a14 == 1)
-                    danshuang.setBackgroundResource(R.drawable.shuangda);
-                if (a14 == 2)
-                    danshuang.setBackgroundResource(R.drawable.danda);
-                if (a12 == 0)
-                    start.setBackgroundResource(R.drawable.dianjiqidong);
-                if (a12 == 1)
-                    start.setBackgroundResource(R.drawable.dianjiting);
-                if (a13 == 1)
-                    stop.setBackgroundResource(R.drawable.qidonghongse);
-                if (a13 == 2)
-                    stop.setBackgroundResource(R.drawable.qidong);
-            }
-            if (a5 == 0x2 || a5 == 0x22)//第一段数据
-            {
-                int a6 = data1[5] & 0xff;//离合延时 及速度
-                int a7 = data1[6]; //刹车电流
-                int a8 = data1[7] & 0xff; //离合电流
-                int a9 = data1[8];//刹车气压显示
-                int a10 = data1[9] & 0xff;//离合气压显示
-                int a11 = data1[10] & 0xff;//刹车超时显示
-                int a12 = data1[11];//离合超时显示
-                int a13 = data1[12];//正转数
-                int a14 = data1[13];//反转数
-
-                lihe_sudu1.setText((int) 3 * a6 + "");
-                imageView21.setText((int) 3 * a7 + "  ");
-                imageView24.setText((int) a8 + "  ");
-                shache_qiya.setText((int) a9 + "  ");
-                lihe_qiya.setText((int) 3 * a10 + "");
-                zheng.setText((int) a13 + "  ");
-                fan.setText((int) a14 + "  ");
-            }
-        }
-       /* int a15 = src[14];
-        int a16 = src[15];
-        int a17 = src[16];
-        int a18 = src[17];
-        int a19 = src[18];
-        int a20 = src[19];
-        int a21 = src[20];
-        int a22 = src[21];
-        int a23 = src[22];
-        if (a1 < 0) {
-            a1 = a1 + 256;
+            height_value.setText((int) 3 * a3 + "," + (UN_I++) % 10);
+            rope_value.setText((int) 3 * a4 + "  ");
+            shache_lidu1.setText((int) a5 + "  ");
+            tv_A.setText((float) dadianliu + "  ");
+            zheng.setText((int) a12 + "  ");
+            fan.setText((int) a13 + "  ");
+            lihe_sudu1.setText((int) 3 * a19 + "");
+            shache_qiya.setText((int) a21 + "  ");
+            lihe_qiya.setText((int) a22 + "");
+            if (a11 == 1)
+                danshuang.setBackgroundResource(R.drawable.shuangda);
+            if (a11 == 2)
+                danshuang.setBackgroundResource(R.drawable.danda);
+            if (a9 == 0)
+                start.setBackgroundResource(R.drawable.dianjiqidong);
+            if (a9 == 1)
+                start.setBackgroundResource(R.drawable.dianjiting);
+            if (a10 == 1)
+                stop.setBackgroundResource(R.drawable.qidonghongse);
+            if (a10 == 2)
+                stop.setBackgroundResource(R.drawable.qidong);
         }
 
-        if (a3 < 0) {
-            a3 = a3 + 256;
-        }
-        if (a5 < 0) {
-            a5 = a5 + 256;
-        }
-        if (a6 < 0) {
-            a6 = a6 + 256;
-        }
-        if (a7 < 0) {
-            a7 = a7 + 256;
-        }
-        if (a8 < 0) {
-            a8 = a8 + 256;
-        }
-        if (a9 < 0) {
-            a9 = a9 + 256;
-        }
-        if (a10 < 0) {
-            a10 = a10 + 256;
-        }
-        if (a11 < 0) {
-            a11 = a11 + 256;
-        }
-        if (a12 < 0) {
-            a12 = a12 + 256;
-        }
-        if (a20 < 0) {
-            a20 = a20 + 256;
-        }
-        if (a21 < 0) {
-            a21 = a21 + 256;
-        }
-        if (a22 < 0) {
-            a22 = a22 + 256;
-        }
-        if (a23 < 0) {
-            a23 = a23 + 256;
-        }
-        dadianliu = a5 << 8 | a6;
-        zongqiya = a7 << 8 | a8;
-        sheche = a9 << 8 | a10;
-        lihe = a11 << 8 | a12;
-        sheche = sheche / 100;
-        lihe = lihe / 100;
-        zongqiya = zongqiya / 100;
-        //shache_kong = a20;
-        // lihe_kong = a21;
-        //xieyan = a22;
-        //lihe_ka =a23;
-        if (a16 == 1)
-            imageView21.setText("良好");
-        if (a16 == 2)
-            imageView21.setText("一般");
-        if (a16 == 3)
-            imageView21.setText("较差");
-        if (a16 == 4)
-            imageView21.setText("损坏");
-
-        if (a18 == 1)
-            imageView22.setText("良好");
-        if (a18 == 2)
-            imageView22.setText("一般");
-        if (a18 == 3)
-            imageView22.setText("较差");
-        if (a18 == 4)
-            imageView22.setText("损坏");
-
-        if (a17 == 1)
-            imageView24.setText("良好");
-        if (a17 == 2)
-            imageView24.setText("一般");
-        if (a17 == 3)
-            imageView24.setText("较差");
-        if (a17 == 4)
-            imageView24.setText("损坏");
-
-        if (a19 == 1)
-            imageView25.setText("良好");
-        if (a19 == 2)
-            imageView25.setText("一般");
-        if (a19 == 3)
-            imageView25.setText("较差");
-        if (a19 == 4)
-            imageView25.setText("损坏");
-        height_value.setText((int) a1 + "," + (UN_I++) % 10);
-        rope_value.setText((int) a2 + "  ");
-        speed_value.setText((int) a3 + "  ");
-        tv_A.setText((float) dadianliu + "  ");
-        tv_V.setText((float) zongqiya + "  ");
-        shache_qiya.setText((float) sheche + "  ");
-        lihe_qiya.setText((float) lihe + "  ");
-        textView28.setText((int) a20 + "  ");
-        textView29.setText((int) a21 + "  ");
-        textView30.setText((int) a22 + "  ");
-        textView32.setText((int) a23 + "  ");
-        if (a13 == 0)
-            start.setBackgroundResource(R.drawable.dianjiqidong);
-        if (a13 == 1)
-            start.setBackgroundResource(R.drawable.dianjiting);
-        if (a14 == 1)
-            stop.setBackgroundResource(R.drawable.qidonghongse);
-        if (a14 == 2)
-            stop.setBackgroundResource(R.drawable.qidong);
-        if (a15 == 1)
-            danshuang.setBackgroundResource(R.drawable.shuangda);
-        if (a15 == 2)
-            danshuang.setBackgroundResource(R.drawable.danda);
-        //
-        //*/
     }
 }

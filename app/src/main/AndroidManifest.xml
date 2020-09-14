@@ -45,6 +45,7 @@
             android:theme="@android:style/Theme.Holo.Dialog" />
         <activity android:name=".abaut_activity" />
 
+        <activity android:name=".SettingActivity"/>
 
     </application>
 
